@@ -1,5 +1,3 @@
-[![CI Build Status](https://github.com/d43ash1sh/AuthHub/actions/workflows/ci.yml/badge.svg)](https://github.com/d43ash1sh/AuthHub/actions)  
-
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)  
 
 [![Made with Next.js & TypeScript](https://img.shields.io/badge/tech-Next.js%20%26%20TypeScript-0052CC?logo=nextdotjs&logoColor=white)](https://nextjs.org/)  
