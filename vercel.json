@@ -2,12 +2,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "framework": "vite",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://your-backend-url.railway.app/api/$1"
+  "functions": {
+    "server/index.ts": {
+      "runtime": "nodejs18.x"
     }
-  ],
+  },
   "headers": [
     {
       "source": "/(.*)",
