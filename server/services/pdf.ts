@@ -333,7 +333,7 @@ export class PDFService {
         }
       });
 
-      return pdf;
+      return Buffer.from(pdf);
     } catch (error) {
       console.error('Error generating PDF:', error);
       throw new Error('Failed to generate PDF resume');

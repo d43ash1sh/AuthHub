@@ -140,7 +140,7 @@ export default function PinnedRepositories() {
                   </div>
                   <span className="flex items-center">
                     <Calendar className="w-3 h-3 mr-1" />
-                    {new Date(repo.pinnedAt).toLocaleDateString()}
+                    {repo.pinnedAt ? new Date(repo.pinnedAt).toLocaleDateString() : 'Unknown'}
                   </span>
                 </div>
               </div>

@@ -13,6 +13,7 @@ import LanguageChart from "@/components/language-chart";
 import ContributorInsights from "@/components/contributor-insights";
 import QuickActions from "@/components/quick-actions";
 import GithubUsernameForm from "@/components/github-username-form";
+import { GitHubData } from "@/types/github";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -33,8 +34,8 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: githubData, isLoading: githubLoading, error: githubError } = useQuery({
-    queryKey: ["/api/github/profile", user?.githubUsername],
+  const { data: githubData, isLoading: githubLoading, error: githubError } = useQuery<GitHubData>({
+    queryKey: ["/api/github/profile"],
     enabled: !!user?.githubUsername,
     retry: (failureCount, error) => {
       if (isUnauthorizedError(error as Error)) {
@@ -119,7 +120,21 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!user.githubUsername ? (
-          <GithubUsernameForm />
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
+              <Github className="mx-auto h-16 w-16 text-blue-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">GitHub Authentication Required</h2>
+              <p className="text-gray-600 mb-6">
+                To access your portfolio dashboard, you need to sign in with GitHub. 
+                This will allow us to fetch your repositories, profile data, and contribution statistics.
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                We need GitHub OAuth credentials to be configured. Please set up:
+                <br />• GITHUB_CLIENT_ID
+                <br />• GITHUB_CLIENT_SECRET
+              </p>
+            </div>
+          </div>
         ) : (
           <>
             {/* Profile Section */}

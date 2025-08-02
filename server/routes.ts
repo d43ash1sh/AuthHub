@@ -1,20 +1,19 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupGitHubAuth, isAuthenticated } from "./githubAuth";
 import { githubService } from "./services/github";
 import { pdfService } from "./services/pdf";
 import { insertPinnedRepositorySchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  await setupGitHubAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = req.user;
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -22,58 +21,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GitHub username setup
-  app.post('/api/github/setup', isAuthenticated, async (req: any, res) => {
+  // GitHub profile data is automatically available after OAuth
+  app.get('/api/github/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const { githubUsername } = req.body;
-
-      if (!githubUsername) {
-        return res.status(400).json({ message: "GitHub username is required" });
-      }
-
-      // Use the GitHub access token from the authenticated user session
-      const accessToken = req.user.access_token;
-      if (!accessToken) {
-        return res.status(400).json({ message: "GitHub access token not found. Please re-authenticate." });
-      }
-
-      // Verify the GitHub username exists and fetch basic profile
-      try {
-        const githubProfile = await githubService.getUserProfile(githubUsername, accessToken);
-        
-        // Update user with GitHub username
-        const updatedUser = await storage.updateUserGithubInfo(userId, githubUsername, accessToken);
-        
-        res.json({ 
-          user: updatedUser,
-          githubProfile 
-        });
-      } catch (error: any) {
-        if (error.message.includes('API error: 404')) {
-          return res.status(404).json({ message: "GitHub user not found" });
-        }
-        throw error;
-      }
-    } catch (error) {
-      console.error("Error setting up GitHub username:", error);
-      res.status(500).json({ message: "Failed to setup GitHub username" });
-    }
-  });
-
-  // Get GitHub profile data
-  app.get('/api/github/profile/:username', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { username } = req.params;
-      const accessToken = req.user.access_token;
-
-      if (!accessToken) {
-        return res.status(400).json({ message: "GitHub access token not found" });
+      const user = req.user;
+      
+      if (!user.githubUsername || !user.githubAccessToken) {
+        return res.status(400).json({ message: "GitHub authentication required" });
       }
 
       // Check cache first
-      const cachedData = await storage.getGithubUserData(userId, username);
+      const cachedData = await storage.getGithubUserData(user.id, user.githubUsername);
       const now = new Date();
       const cacheExpiry = 30 * 60 * 1000; // 30 minutes
 
@@ -86,17 +44,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fetch fresh data from GitHub
       const [githubProfile, repositories, contributionStats] = await Promise.all([
-        githubService.getUserProfile(username, accessToken),
-        githubService.getUserRepositories(username, accessToken),
-        githubService.getContributionStats(username, accessToken)
+        githubService.getUserProfile(user.githubUsername, user.githubAccessToken),
+        githubService.getUserRepositories(user.githubUsername, user.githubAccessToken),
+        githubService.getContributionStats(user.githubUsername, user.githubAccessToken)
       ]);
 
       const languageStats = await githubService.getLanguageStats(repositories);
 
       // Cache the data
       const githubData = await storage.upsertGithubUserData({
-        userId,
-        githubUsername: username,
+        userId: user.id,
+        githubUsername: user.githubUsername,
         profileData: githubProfile as any,
         repositories: repositories as any,
         languageStats: languageStats as any,
@@ -110,23 +68,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   // Get repositories for the authenticated user's GitHub username
   app.get('/api/github/repositories', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = req.user;
       
-      if (!user?.githubUsername) {
-        return res.status(400).json({ message: "GitHub username not set up" });
+      if (!user?.githubUsername || !user?.githubAccessToken) {
+        return res.status(400).json({ message: "GitHub authentication required" });
       }
 
-      const accessToken = req.user.access_token;
-      if (!accessToken) {
-        return res.status(400).json({ message: "GitHub access token not found" });
-      }
-
-      const repositories = await githubService.getUserRepositories(user.githubUsername, accessToken);
-      const pinnedRepos = await storage.getPinnedRepositories(userId);
+      const repositories = await githubService.getUserRepositories(user.githubUsername, user.githubAccessToken);
+      const pinnedRepos = await storage.getPinnedRepositories(user.id);
 
       // Add pinned status to repositories
       const repositoriesWithPinned = repositories.map(repo => ({
@@ -144,25 +98,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pin/unpin repository
   app.post('/api/github/repositories/:repoId/pin', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user;
       const { repoId } = req.params;
       const { repositoryName, repositoryOwner, action } = req.body;
 
       if (action === 'pin') {
         // Check if already at max pins (5)
-        const pinnedRepos = await storage.getPinnedRepositories(userId);
+        const pinnedRepos = await storage.getPinnedRepositories(user.id);
         if (pinnedRepos.length >= 5) {
           return res.status(400).json({ message: "Maximum 5 repositories can be pinned" });
         }
 
         // Check if already pinned
-        const isAlreadyPinned = await storage.isPinnedRepository(userId, repoId);
+        const isAlreadyPinned = await storage.isPinnedRepository(user.id, repoId);
         if (isAlreadyPinned) {
           return res.status(400).json({ message: "Repository is already pinned" });
         }
 
         const validatedData = insertPinnedRepositorySchema.parse({
-          userId,
+          userId: user.id,
           repositoryName,
           repositoryOwner,
           repositoryId: repoId,
@@ -171,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const pinnedRepo = await storage.addPinnedRepository(validatedData);
         res.json(pinnedRepo);
       } else if (action === 'unpin') {
-        await storage.removePinnedRepository(userId, repoId);
+        await storage.removePinnedRepository(user.id, repoId);
         res.json({ message: "Repository unpinned successfully" });
       } else {
         res.status(400).json({ message: "Invalid action. Use 'pin' or 'unpin'" });
@@ -185,8 +139,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get pinned repositories
   app.get('/api/github/pinned', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const pinnedRepos = await storage.getPinnedRepositories(userId);
+      const user = req.user;
+      const pinnedRepos = await storage.getPinnedRepositories(user.id);
       res.json(pinnedRepos);
     } catch (error) {
       console.error("Error fetching pinned repositories:", error);
@@ -197,25 +151,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate PDF resume
   app.get('/api/generate-pdf', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = req.user;
       
       if (!user?.githubUsername) {
-        return res.status(400).json({ message: "GitHub username not set up" });
-      }
-
-      const accessToken = req.user.access_token;
-      if (!accessToken) {
-        return res.status(400).json({ message: "GitHub access token not found" });
+        return res.status(400).json({ message: "GitHub authentication required" });
       }
 
       // Get cached GitHub data
-      const githubData = await storage.getGithubUserData(userId, user.githubUsername);
+      const githubData = await storage.getGithubUserData(user.id, user.githubUsername);
       if (!githubData) {
         return res.status(400).json({ message: "GitHub profile data not found. Please refresh your data first." });
       }
 
-      const pinnedRepos = await storage.getPinnedRepositories(userId);
+      const pinnedRepos = await storage.getPinnedRepositories(user.id);
 
       const resumeData = {
         user,
@@ -240,30 +188,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh GitHub data
   app.post('/api/github/refresh', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = req.user;
       
-      if (!user?.githubUsername) {
-        return res.status(400).json({ message: "GitHub username not set up" });
-      }
-
-      const accessToken = req.user.access_token;
-      if (!accessToken) {
-        return res.status(400).json({ message: "GitHub access token not found" });
+      if (!user?.githubUsername || !user?.githubAccessToken) {
+        return res.status(400).json({ message: "GitHub authentication required" });
       }
 
       // Fetch fresh data from GitHub
       const [githubProfile, repositories, contributionStats] = await Promise.all([
-        githubService.getUserProfile(user.githubUsername, accessToken),
-        githubService.getUserRepositories(user.githubUsername, accessToken),
-        githubService.getContributionStats(user.githubUsername, accessToken)
+        githubService.getUserProfile(user.githubUsername, user.githubAccessToken),
+        githubService.getUserRepositories(user.githubUsername, user.githubAccessToken),
+        githubService.getContributionStats(user.githubUsername, user.githubAccessToken)
       ]);
 
       const languageStats = await githubService.getLanguageStats(repositories);
 
       // Update cache
       const githubData = await storage.upsertGithubUserData({
-        userId,
+        userId: user.id,
         githubUsername: user.githubUsername,
         profileData: githubProfile as any,
         repositories: repositories as any,
