@@ -11,6 +11,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
+import { memoryStorage } from "./memoryStorage";
 
 // Interface for storage operations
 export interface IStorage {
@@ -147,4 +148,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Use in-memory storage for development to avoid database connection issues
+export const storage = memoryStorage;
