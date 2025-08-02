@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
 import { LogOut, Github } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 import ProfileHeader from "@/components/profile-header";
 import StatsOverview from "@/components/stats-overview";
 import PinnedRepositories from "@/components/pinned-repositories";
@@ -28,7 +29,7 @@ export default function Dashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = getApiUrl("/api/login");
       }, 500);
       return;
     }
@@ -53,13 +54,13 @@ export default function Dashboard() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = getApiUrl("/api/login");
       }, 500);
     }
   }, [githubError, toast]);
 
   const handleLogout = () => {
-    window.location.href = "/api/logout";
+    window.location.href = getApiUrl("/api/logout");
   };
 
   if (isLoading) {
