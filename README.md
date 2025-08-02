@@ -6,7 +6,9 @@
 
 [![Tailwind 4.0 Styled](https://img.shields.io/badge/styled%20with-Tailwind%20CSS-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)  
 
-**Live Demo:** https://<your-vercel-or-netlify-subdomain>.vercel.app  
+**Live Demo:** [Coming Soon - Deploy to Vercel](https://vercel.com)
+
+**Deployment:** [See DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions  
 
 ---  
 
