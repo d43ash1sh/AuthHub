@@ -70,14 +70,6 @@ Built as a modern tech demonstration of **React + Express + TypeScript**, AuthHu
 
 ---  
 
-## 🖼 Screenshots  
-
-| Login Screen | Dashboard View | PDF Export |
-|---|---|---|
-| `![Login Screen](assets/images/login.png)` | `![Dashboard](assets/images/dashboard.png)` | `![Export PDF](assets/images/export.png)` |  
-
----  
-
 ## 🚀 Getting Started  
 
 ### Prerequisites  
@@ -100,10 +92,10 @@ npm install
 Create a `.env` file at root (do not commit this):  
 
 ```ini  
-GITHUB_CLIENT_ID=abc123  
-GITHUB_CLIENT_SECRET=xyz789  
+GITHUB_CLIENT_ID=deba123  
+GITHUB_CLIENT_SECRET=xyz789deba 
 SESSION_SECRET=long_random_string  
-DATABASE_URL=postgres://user:pass@host:5432/dbname   # optional  
+DATABASE_URL=postgres://debashishbordoloi:pass@host:5432/dbname   # optional  
 ```  
 
 ### Development  
@@ -175,8 +167,6 @@ Distributed under the MIT License. See LICENSE for more details.
 
 - Inspired by [gitforme.tech]  
 - Based on React + Express + TypeScript Starter  
-- README structure follows best practices from Othneildrew's template  
-- Badge usage via [Shields.io] (build, license, technology)  
 - Thanks to all open‑source developers and platforms that made this possible. 🙌  
 
 ## 📬 Contact  
