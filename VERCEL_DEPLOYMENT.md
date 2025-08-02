@@ -29,16 +29,14 @@ This guide shows you how to deploy AuthHub directly from GitHub to Vercel using 
 
 ### 3. Configure Environment Variables
 
-**Before deploying, add these environment variables:**
+**For frontend-only deployment, you'll need to set up a backend separately.**
 
-Click **"Environment Variables"** and add:
+**Frontend Environment Variables (Optional):**
+```
+VITE_API_URL=https://your-backend-url.com
+```
 
-```
-GITHUB_CLIENT_ID=Ov23liqS4l1ALDCZdj7m
-GITHUB_CLIENT_SECRET=f6c2d75ce69a433a0a28d4d0f9ff9da6a4b37d29
-SESSION_SECRET=your-super-secret-session-key-change-this-in-production
-NODE_ENV=production
-```
+**Note:** You'll need to deploy the backend separately (Railway, Render, etc.) and update the API URL.
 
 ### 4. Deploy
 
@@ -48,13 +46,32 @@ NODE_ENV=production
 
 ## 🔧 Post-Deployment Setup
 
+### Deploy Backend Separately
+
+Since this is a full-stack application, you'll need to deploy the backend separately:
+
+1. **Option 1: Railway (Recommended)**
+   - Go to [railway.app](https://railway.app)
+   - Connect your GitHub repository
+   - Deploy the backend with environment variables
+
+2. **Option 2: Render**
+   - Go to [render.com](https://render.com)
+   - Create a new Web Service
+   - Connect your GitHub repository
+
+3. **Option 3: Heroku**
+   - Go to [heroku.com](https://heroku.com)
+   - Create a new app
+   - Connect your GitHub repository
+
 ### Update GitHub OAuth App
 
 1. Go to [GitHub Settings > Developer settings > OAuth Apps](https://github.com/settings/developers)
 2. Find your AuthHub OAuth app
 3. Update these URLs:
    - **Homepage URL**: `https://your-project-name.vercel.app`
-   - **Authorization callback URL**: `https://your-project-name.vercel.app/api/github/callback`
+   - **Authorization callback URL**: `https://your-backend-url.com/api/github/callback`
 
 ### Test Your Deployment
 
